@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#130008">
+<title>90 Tage</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Space+Mono&display=swap');
+
+  :root {
+    --bg: #130008;
+    --bg-grad-top: #130008;
+    --bg-grad-bot: #2e000f;
+    --surface: #1f0410;
+    --surface-2: #2a0816;
+    --line: #45132a;
+    --text: #fdeef3;
+    --muted: #b07a90;
+    --accent: #ff0054;
+    --accent-dim: #3d0a1f;
+    --body: 'Space Mono', ui-monospace, monospace;
+    --display: 'Fraunces', Georgia, serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: linear-gradient(180deg, var(--bg-grad-top) 0%, var(--bg-grad-bot) 100%);
+    background-attachment: fixed;
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 14px;
+    line-height: 1.5;
+    padding-bottom: 90px;
+    max-width: 600px;
+    margin: 0 auto;
+    min-height: 100vh;
+    overscroll-behavior-y: contain;
+  }
+  html { background: var(--bg-grad-bot); }
+
+  .header {
+    padding: 28px 20px 16px;
+    padding-top: max(28px, env(safe-area-inset-top));
+  }
+  .header h1 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 30px;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+  }
+  .header h1 em { color: var(--accent); font-style: italic; }
+  .header .sub { color: var(--muted); font-size: 12px; margin-top: 6px; }
+
+  /* Overall progress ring strip */
+  .topstats {
+    display: flex; gap: 10px; padding: 0 20px 18px;
+  }
+  .stat {
+    flex: 1; min-width: 0; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 14px; padding: 12px 6px; text-align: center;
+  }
+  .stat .num { font-family: var(--display); font-size: 24px; font-weight: 700; color: var(--accent); line-height: 1; }
+  .stat .lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 5px; white-space: nowrap; }
+
+  /* Week selector */
+  .weekbar { display: flex; gap: 6px; overflow-x: auto; padding: 0 20px 16px; scrollbar-width: none; }
+  .weekbar::-webkit-scrollbar { display: none; }
+  .wchip {
+    flex: 0 0 auto; background: var(--surface); border: 1px solid var(--line);
+    color: var(--muted); border-radius: 10px; padding: 8px 12px; font-size: 11px;
+    cursor: pointer; white-space: nowrap; transition: .15s;
+  }
+  .wchip.active { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
+  .wchip .dot { display:inline-block; width:5px; height:5px; border-radius:50%; background: var(--accent); margin-left:5px; }
+  .wchip.active .dot { background:#fff; }
+
+  .section { padding: 0 20px; }
+  .week-head {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+    padding: 16px; margin-bottom: 14px;
+  }
+  .week-head .phase { font-size: 10px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; }
+  .week-head h2 { font-family: var(--display); font-size: 19px; font-weight: 600; margin: 4px 0 10px; }
+  .goal-row { display: flex; gap: 8px; align-items: flex-start; margin-top: 8px; font-size: 12px; }
+  .goal-row .tag {
+    flex: 0 0 auto; font-size: 9px; padding: 2px 7px; border-radius: 6px; margin-top:1px;
+    text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;
+  }
+  .tag.app { background: #1a2e4a; color: #6db3ff; }
+  .tag.body { background: #3a1a2e; color: #ff6db3; }
+  .tag.mind { background: #2e2a1a; color: #ffd56d; }
+  .goal-row .txt { color: var(--muted); }
+
+  /* Days */
+  .day {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+    margin-bottom: 12px; overflow: hidden;
+  }
+  .day-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; cursor: pointer;
+  }
+  .day-head .left { display: flex; align-items: center; gap: 12px; }
+  .day-name { font-family: var(--display); font-size: 16px; font-weight: 600; }
+  .day-sub { font-size: 10px; color: var(--muted); }
+  .day-prog {
+    font-family: var(--display); font-size: 13px; font-weight: 700; color: var(--muted);
+    display:flex; align-items:center; gap:8px;
+  }
+  .mini-ring { width: 26px; height: 26px; transform: rotate(-90deg); }
+  .mini-ring circle { fill:none; stroke-width: 3; }
+  .mini-ring .bg { stroke: var(--line); }
+  .mini-ring .fg { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset .4s; }
+  .chevron { color: var(--muted); transition: transform .25s; font-size: 12px; }
+  .day.open .chevron { transform: rotate(180deg); }
+
+  .tasks { max-height: 0; overflow: hidden; transition: max-height .3s ease; }
+  .day.open .tasks { max-height: 900px; }
+  .task {
+    display: flex; align-items: flex-start; gap: 12px; padding: 11px 16px;
+    border-top: 1px solid var(--line); cursor: pointer;
+  }
+  .check {
+    flex: 0 0 auto; width: 22px; height: 22px; border: 2px solid var(--line);
+    border-radius: 7px; margin-top: 1px; display: flex; align-items: center; justify-content: center;
+    transition: .15s;
+  }
+  .task.done .check { background: var(--accent); border-color: var(--accent); }
+  .task.done .check::after { content: '✓'; color: #fff; font-weight: 700; font-size: 13px; }
+  .task .body-txt { font-size: 13px; line-height: 1.4; }
+  .task .time { font-size: 10px; color: var(--accent); }
+  .task.done .body-txt { color: var(--muted); text-decoration: line-through; }
+
+  /* Edit mode */
+  .day-edit-btn {
+    background: var(--surface-2); border: 1px solid var(--line); color: var(--muted);
+    font-family: var(--body); font-size: 10px; padding: 4px 9px; border-radius: 7px;
+    cursor: pointer; margin-right: 8px;
+  }
+  .day-edit-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .task.editing { cursor: default; align-items: center; }
+  .task .del-btn {
+    flex: 0 0 auto; width: 22px; height: 22px; border: none; background: var(--accent-dim);
+    color: var(--accent); border-radius: 6px; font-size: 15px; cursor: pointer; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .task .edit-fields { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .task .edit-fields input {
+    width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+    color: var(--text); font-family: var(--body); font-size: 12px; padding: 7px 9px;
+  }
+  .task .edit-fields input:focus { outline: none; border-color: var(--accent); }
+  .task .edit-fields .time-in { font-size: 10px; color: var(--accent); max-width: 130px; }
+  .add-task-btn {
+    width: 100%; background: none; border: 1px dashed var(--line); color: var(--accent);
+    font-family: var(--body); font-size: 12px; padding: 11px; cursor: pointer;
+    border-top: 1px solid var(--line); border-radius: 0;
+  }
+  .add-task-btn:hover { background: var(--accent-dim); }
+  .reset-day-btn {
+    width: 100%; background: none; border: none; border-top: 1px solid var(--line);
+    color: var(--muted); font-family: var(--body); font-size: 10px; padding: 9px; cursor: pointer;
+  }
+
+  /* Reflection */
+  .reflect {
+    background: var(--surface-2); border: 1px dashed var(--line); border-radius: 16px;
+    padding: 16px; margin-bottom: 14px;
+  }
+  .reflect h3 { font-family: var(--display); font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .reflect p { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
+  .reflect textarea {
+    width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+    color: var(--text); font-family: var(--body); font-size: 12px; padding: 10px; resize: vertical;
+    min-height: 60px;
+  }
+  .reflect textarea:focus { outline: none; border-color: var(--accent); }
+
+  /* bottom nav */
+  .nav {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 600px; background: rgba(25,2,12,.92);
+    backdrop-filter: blur(16px); border-top: 1px solid var(--line);
+    display: flex; padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+  }
+  .nav button {
+    flex: 1; background: none; border: none; color: var(--muted); font-family: var(--body);
+    font-size: 10px; padding: 8px; cursor: pointer; display: flex; flex-direction: column;
+    align-items: center; gap: 4px; transition: .15s;
+  }
+  .nav button.active { color: var(--accent); }
+  .nav button .ico { font-size: 17px; }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* Stats view */
+  .bigring-wrap { display: flex; justify-content: center; padding: 28px 0 20px; }
+  .bigring-box { position: relative; width: 190px; height: 190px; }
+  .bigring { width: 190px; height: 190px; transform: rotate(-90deg); display: block; }
+  .bigring circle { fill: none; stroke-width: 12; }
+  .bigring .bg { stroke: var(--line); }
+  .bigring .fg { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset .6s; }
+  .bigring-label {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    text-align: center; width: 64%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .bigring-label .pct { font-family: var(--display); font-size: 32px; font-weight: 700; line-height: 1; }
+  .bigring-label .t { font-size: 8px; color: var(--muted); text-transform: uppercase; letter-spacing: .12em; margin-top: 6px; line-height: 1.35; }
+
+  .cat-stat { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; }
+  .cat-stat .row1 { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .cat-stat .name { font-family: var(--display); font-size: 15px; font-weight: 600; }
+  .cat-stat .val { font-size: 12px; color: var(--accent); font-weight: 700; }
+  .bar { height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden; }
+  .bar span { display: block; height: 100%; background: var(--accent); border-radius: 4px; transition: width .6s; }
+
+  .week-grid { display: grid; grid-template-columns: repeat(6,1fr); gap: 6px; margin-top: 16px; }
+  .wcell { aspect-ratio: 1; border-radius: 8px; background: var(--surface); border: 1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; font-size:10px; color: var(--muted); position: relative;}
+  .wcell .lvl { position:absolute; inset:0; border-radius:7px; background: var(--accent); }
+
+  .reset-btn { width: 100%; background: var(--surface); border: 1px solid var(--line); color: var(--muted);
+    font-family: var(--body); font-size: 11px; padding: 12px; border-radius: 12px; margin-top: 20px; cursor: pointer; }
+
+  .note { font-size: 10px; color: var(--muted); line-height: 1.5; padding: 16px 4px 0; }
+
+  /* Meals */
+  .meals-intro { padding: 6px 0 18px; }
+  .meals-intro h2 { font-family: var(--display); font-size: 24px; font-weight: 600; }
+  .meals-intro p { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+  .meal {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+    padding: 16px; margin-bottom: 12px;
+  }
+  .meal-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .meal-name { font-family: var(--display); font-size: 17px; font-weight: 600; line-height: 1.2; }
+  .meal-time { font-size: 10px; color: var(--accent); text-transform: uppercase; letter-spacing: .06em; margin-top: 3px; }
+  .meal-macros { display: flex; gap: 7px; margin: 12px 0 10px; flex-wrap: wrap; }
+  .macro {
+    background: var(--accent-dim); border-radius: 8px; padding: 5px 10px; text-align: center; flex: 1; min-width: 56px;
+  }
+  .macro .mv { font-family: var(--display); font-size: 15px; font-weight: 700; color: var(--text); line-height: 1; }
+  .macro .ml { font-size: 8px; color: var(--text); opacity: 0.6; text-transform: uppercase; letter-spacing: .06em; margin-top: 3px; }
+  .meal-ingredients { font-size: 12px; color: var(--muted); line-height: 1.55; }
+  .meal-edit-btn {
+    background: var(--surface-2); border: 1px solid var(--line); color: var(--muted);
+    font-family: var(--body); font-size: 10px; padding: 4px 9px; border-radius: 7px; cursor: pointer; flex:0 0 auto;
+  }
+  .meal-edit-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .meal.editing .meal-fields { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .meal-fields input, .meal-fields textarea {
+    width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+    color: var(--text); font-family: var(--body); font-size: 12px; padding: 8px 10px;
+  }
+  .meal-fields textarea { resize: vertical; min-height: 50px; }
+  .meal-fields input:focus, .meal-fields textarea:focus { outline: none; border-color: var(--accent); }
+  .meal-fields .macro-row { display: flex; gap: 8px; }
+  .meal-fields .macro-row input { text-align: center; }
+  .meal-fields label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; display:block; margin-bottom: 3px; }
+  .meal-fields .macro-row > div { flex: 1; }
+  .meal-del {
+    width: 100%; background: none; border: none; border-top: 1px solid var(--line); margin-top: 10px;
+    color: var(--accent); font-family: var(--body); font-size: 11px; padding: 9px 0 0; cursor: pointer;
+  }
+  .add-meal-btn {
+    width: 100%; background: none; border: 1px dashed var(--line); color: var(--accent);
+    font-family: var(--body); font-size: 13px; padding: 14px; cursor: pointer; border-radius: 14px; margin-top: 4px;
+  }
+  .add-meal-btn:active { background: var(--accent-dim); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>90 Tage <em>Projekt</em></h1>
+  <div class="sub" id="dateline">App · Körper · Lesen</div>
+</div>
+
+<div class="topstats">
+  <div class="stat"><div class="num" id="s-streak">0</div><div class="lbl">Tage erledigt</div></div>
+  <div class="stat"><div class="num" id="s-week">W1</div><div class="lbl">Aktuelle Woche</div></div>
+  <div class="stat"><div class="num" id="s-overall">0%</div><div class="lbl">Gesamt</div></div>
+</div>
+
+<!-- PLAN VIEW -->
+<div class="view active" id="view-plan">
+  <div class="weekbar" id="weekbar"></div>
+  <div class="section" id="planbody"></div>
+  <div class="section"><div class="note" id="note"></div></div>
+</div>
+
+<!-- STATS VIEW -->
+<div class="view" id="view-stats">
+  <div class="bigring-wrap">
+    <div class="bigring-box">
+      <svg class="bigring" viewBox="0 0 200 200">
+        <circle class="bg" cx="100" cy="100" r="80"></circle>
+        <circle class="fg" id="bigfg" cx="100" cy="100" r="80"></circle>
+      </svg>
+      <div class="bigring-label">
+        <div class="pct" id="bigpct">0%</div>
+        <div class="t">90 Tage<br>gesamt</div>
+      </div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="cat-stat">
+      <div class="row1"><span class="name">App-Projekt</span><span class="val" id="v-app">0%</span></div>
+      <div class="bar"><span id="b-app" style="width:0%"></span></div>
+    </div>
+    <div class="cat-stat">
+      <div class="row1"><span class="name">Körper / Lean Bulk</span><span class="val" id="v-body">0%</span></div>
+      <div class="bar"><span id="b-body" style="width:0%"></span></div>
+    </div>
+    <div class="cat-stat">
+      <div class="row1"><span class="name">Lesen</span><span class="val" id="v-mind">0%</span></div>
+      <div class="bar"><span id="b-mind" style="width:0%"></span></div>
+    </div>
+    <div class="week-grid" id="weekgrid"></div>
+    <button class="reset-btn" id="resetbtn">Fortschritt zurücksetzen</button>
+  </div>
+</div>
+
+<!-- MEALS VIEW -->
+<div class="view" id="view-meals">
+  <div class="section">
+    <div class="meals-intro">
+      <h2>Meal Plans</h2>
+      <p>Schnelle Gerichte für ~3.000 kcal &amp; ~170g Protein/Tag. Tippe „Bearbeiten" zum Anpassen.</p>
+    </div>
+    <div id="mealsbody"></div>
+    <button class="add-meal-btn" id="addmealbtn">+ Gericht hinzufügen</button>
+    <div class="note" style="padding-top:14px">⚡ Makro-Angaben sind Richtwerte pro Portion. Beim Lean Bulk zählt dein Tagestotal — kombiniere die Gerichte so, dass du auf ~3.000 kcal und ~170g Protein kommst.</div>
+  </div>
+</div>
+
+<div class="nav">
+  <button class="active" data-view="plan"><span class="ico">◎</span>Plan</button>
+  <button data-view="meals"><span class="ico">◍</span>Meals</button>
+  <button data-view="stats"><span class="ico">◔</span>Statistik</button>
+</div>
+
+<script>
+// ---------- PLAN DATA ----------
+// Daily template (Mon-Sun). Mon-Fri share a workday template; weekend differs.
+const dayTemplates = {
+  workday: [
+    {t:'06:00', x:'Aufstehen, Wasser, Tageslicht', c:'body'},
+    {t:'06:15', x:'Frühstück · 35g Protein', c:'body'},
+    {t:'Mittag', x:'Kantine · Hauptmahlzeit, Protein', c:'body'},
+    {t:'Nach Arbeit', x:'Heimkommen · selbst gekochtes Essen, Protein', c:'body'},
+    {t:'Nachmittag', x:'App-Block · 1,5–2h (Wochenziel)', c:'app'},
+    {t:'Täglich', x:'5–10 Seiten lesen', c:'mind'},
+    {t:'20:00', x:'Gym · Training nach Split', c:'body'},
+    {t:'Nach Gym', x:'Screen-off · duschen', c:'body'},
+    {t:'Optional', x:'Quark/Shake nach dem Training (45g Protein)', c:'body'},
+    {t:'22:00', x:'Schlaf (Wachstum!)', c:'body'},
+  ],
+  weekend: [
+    {t:'Vormittag', x:'Langer App-Block · 3–4h am Stück', c:'app'},
+    {t:'Mittag', x:'Protein-Ziel treffen', c:'body'},
+    {t:'Täglich', x:'5–10 Seiten lesen', c:'mind'},
+    {t:'Nachmittag', x:'Gym · Training nach Split', c:'body'},
+  ],
+  sunday: [
+    {t:'Vormittag', x:'Meal Prep · 4–5 Portionen für die Woche', c:'body'},
+    {t:'Mittag', x:'App-Block · Wochenziel abschließen', c:'app'},
+    {t:'Täglich', x:'5–10 Seiten lesen', c:'mind'},
+    {t:'Nachmittag', x:'Gym ODER Rest-Tag', c:'body'},
+    {t:'Abend', x:'WOCHENREFLEXION (unten ausfüllen)', c:'mind'},
+  ]
+};
+
+// 12 weeks of goals
+const weeks = [
+  // Month 1 - Validierung
+  {phase:'Monat 1 · Validierung', title:'Woche 1 — Landingpage live', goals:[
+    {c:'app', x:'Landingpage + Mockups bauen, Warteliste-Feld einbauen'},
+    {c:'body', x:'Routine festigen, Tracking starten, +200 kcal'},
+    {c:'mind', x:'Lesen: 5–10 Seiten täglich starten (Buch wählen)'}]},
+  {phase:'Monat 1 · Validierung', title:'Woche 2 — Reichweite testen', goals:[
+    {c:'app', x:'Ads/Posts starten, erste 10 Stichproben-Gespräche'},
+    {c:'body', x:'Protein-Ziel an 6/7 Tagen, Meal Prep läuft'},
+    {c:'mind', x:'Lesen: 5–10 Seiten täglich, Gewohnheit festigen'}]},
+  {phase:'Monat 1 · Validierung', title:'Woche 3 — Daten sammeln', goals:[
+    {c:'app', x:'20+ Gespräche, Verhalten beobachten, auswerten'},
+    {c:'body', x:'Progressive Overload: 1 Übung steigern'},
+    {c:'mind', x:'Lesen: dranbleiben, 5–10 Seiten täglich'}]},
+  {phase:'Monat 1 · Validierung', title:'Woche 4 — Go / No-Go', goals:[
+    {c:'app', x:'Entscheidung anhand der Schwellen (>5% Conversion)'},
+    {c:'body', x:'Erster Foto+Waage-Check, vergleichen'},
+    {c:'mind', x:'Lesen: erstes Buch fertig? Nächstes wählen'}]},
+  // Month 2 - Bauen
+  {phase:'Monat 2 · Bauen', title:'Woche 5 — Scope einfrieren', goals:[
+    {c:'app', x:'MVP-Scope definieren, EIN Kernfeature festlegen'},
+    {c:'body', x:'Konstanter Überschuss, Schlaf priorisieren'},
+    {c:'mind', x:'Lesen: 5–10 Seiten täglich weiterführen'}]},
+  {phase:'Monat 2 · Bauen', title:'Woche 6 — Logging-Flow', goals:[
+    {c:'app', x:'Onboarding + Workout-Logging-Flow bauen'},
+    {c:'body', x:'Steigerung dokumentieren, Protein halten'},
+    {c:'mind', x:'Lesen: dranbleiben, Notizen zu Highlights'}]},
+  {phase:'Monat 2 · Bauen', title:'Woche 7 — Themes & UI', goals:[
+    {c:'app', x:'Themes + Kern-UI fertigstellen (deine Stärke!)'},
+    {c:'body', x:'Foto+Waage-Check, ggf. Kalorien justieren'},
+    {c:'mind', x:'Lesen: 5–10 Seiten täglich halten'}]},
+  {phase:'Monat 2 · Bauen', title:'Woche 8 — Klickbare Version', goals:[
+    {c:'app', x:'Erste klickbare Version an Warteliste zeigen'},
+    {c:'body', x:'Recovery checken, Schlaf 7,5h+ halten'},
+    {c:'mind', x:'Lesen: zweites Buch fertig?'}]},
+  // Month 3 - Launch
+  {phase:'Monat 3 · Launch', title:'Woche 9 — Store-Assets', goals:[
+    {c:'app', x:'Bugs fixen, Screenshots & Store-Texte bauen'},
+    {c:'body', x:'Volumen halten, Schwachstellen angehen'},
+    {c:'mind', x:'Lesen: 5–10 Seiten täglich weiterführen'}]},
+  {phase:'Monat 3 · Launch', title:'Woche 10 — Soft Launch', goals:[
+    {c:'app', x:'An die Warteliste ausrollen'},
+    {c:'body', x:'Foto+Waage-Check, Fortschritt seit W1'},
+    {c:'mind', x:'Lesen: dranbleiben, Lieblingsstellen markieren'}]},
+  {phase:'Monat 3 · Launch', title:'Woche 11 — Retention messen', goals:[
+    {c:'app', x:'Tag-7-Retention messen, Feedback einsammeln'},
+    {c:'body', x:'Konstanz halten, nicht nachlassen'},
+    {c:'mind', x:'Lesen: 5–10 Seiten täglich halten'}]},
+  {phase:'Monat 3 · Launch', title:'Woche 12 — Bilanz & Plan', goals:[
+    {c:'app', x:'Iterieren, nächste 90 Tage planen'},
+    {c:'body', x:'Großer Vergleich: Fotos W1 vs W12'},
+    {c:'mind', x:'Lesen-Bilanz: wie viele Bücher in 90 Tagen?'}]},
+];
+
+const dayDefs = [
+  {key:'mo', name:'Montag', sub:'Push · Brust/Schulter/Trizeps', tpl:'workday'},
+  {key:'di', name:'Dienstag', sub:'Pull · Rücken/Bizeps', tpl:'workday'},
+  {key:'mi', name:'Mittwoch', sub:'Beine', tpl:'workday'},
+  {key:'do', name:'Donnerstag', sub:'Rest / lockeres Cardio', tpl:'workday'},
+  {key:'fr', name:'Freitag', sub:'Upper · Schwachstellen', tpl:'workday'},
+  {key:'sa', name:'Samstag', sub:'Lower / Schwachstellen', tpl:'weekend'},
+  {key:'so', name:'Sonntag', sub:'Rest · Meal Prep · Reflexion', tpl:'sunday'},
+];
+
+const defaultMeals = [
+  {name:'Hähnchen-Reis-Bowl', time:'Meal Prep · 15 Min', kcal:650, p:50, c:70, f:12,
+   ing:'Hähnchenbrust, Reis, Brokkoli & Paprika, Sojasoße + etwas Honig. Hält 3–4 Tage, schmeckt aufgewärmt top.'},
+  {name:'Rinderhack-Süßkartoffel-Pfanne', time:'Meal Prep · 20 Min', kcal:700, p:40, c:55, f:30,
+   ing:'Rinderhack (15%), Süßkartoffelwürfel, Zwiebeln, Paprika, Gewürze. Sättigt brutal, eine Pfanne.'},
+  {name:'Lachs-Quinoa mit Gemüse', time:'Meal Prep · 20 Min', kcal:680, p:42, c:50, f:28,
+   ing:'Lachsfilet, Quinoa, Zucchini & Erbsen. Bringt Omega-3 & gesunde Fette rein.'},
+  {name:'Rührei-Wrap', time:'Schnell · 8 Min', kcal:600, p:35, c:45, f:28,
+   ing:'4–5 Eier, Vollkorn-Wrap, Käse, Spinat. In 8 Minuten fertig.'},
+  {name:'Thunfisch-Pasta', time:'Schnell · 15 Min', kcal:700, p:50, c:75, f:18,
+   ing:'Vollkornnudeln, 2 Dosen Thunfisch, Frischkäse, Erbsen. Rest fertig während die Nudeln kochen.'},
+  {name:'Magerquark-Bowl', time:'Kein Kochen · post-workout', kcal:650, p:55, c:65, f:15,
+   ing:'500g Magerquark, Haferflocken, Banane, Erdnussbutter, Honig. Viel Protein vor dem Schlaf.'},
+  {name:'Hähnchen-Gnocchi-Pfanne', time:'Schnell · 12 Min', kcal:750, p:45, c:80, f:24,
+   ing:'Fertig-Gnocchi, Hähnchenstreifen, Pesto, Cherrytomaten. 12 Min, eine Pfanne.'},
+];
+
+// ---------- STATE ----------
+let state = load();
+let currentWeek = state.currentWeek || 0;
+let editingDays = {}; // di -> bool (edit mode toggled per day, not persisted)
+
+function load(){
+  try {
+    const s = JSON.parse(localStorage.getItem('plan90')) || {};
+    return { checks:s.checks||{}, reflect:s.reflect||{}, currentWeek:s.currentWeek||0, custom:s.custom||{},
+             meals: s.meals || defaultMeals.map(m=>({uid:uidGenSync(), ...m})) };
+  }
+  catch(e){ return {checks:{}, reflect:{}, currentWeek:0, custom:{}, meals: defaultMeals.map(m=>({uid:uidGenSync(), ...m}))}; }
+}
+function uidGenSync(){ return 'm'+Math.random().toString(36).slice(2,9); }
+function save(){ localStorage.setItem('plan90', JSON.stringify(state)); }
+
+// Each task has a stable uid. Templates get uids derived from their position.
+function templateTasks(dd){
+  return dayTemplates[dd.tpl].map((t,i)=>({uid:`${dd.tpl}_${i}`, t:t.t, x:t.x, c:t.c}));
+}
+// Key for storing a custom (edited) task list for a given week+day
+function customKey(w,di){ return `${w}_${di}`; }
+
+// Returns the task list for current week + day: custom if edited, else template
+function tasksForDayIdx(di){
+  return tasksFor(currentWeek, di);
+}
+// Once a day is edited, we "materialize" its list into custom storage so edits stick
+function ensureCustom(di){
+  const ck = customKey(currentWeek, di);
+  if(!state.custom[ck]) state.custom[ck] = templateTasks(dayDefs[di]).map(t=>({...t}));
+  return state.custom[ck];
+}
+
+// check storage keyed by week_day_uid (stable across reorder/delete)
+function isDone(w,di,uid){ return !!state.checks[`${w}_${di}_${uid}`]; }
+function toggleTask(di,uid){
+  const k = `${currentWeek}_${di}_${uid}`;
+  state.checks[k] = !state.checks[k];
+  save(); render(); renderStats();
+}
+
+function uidGen(){ return 'u'+Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
+
+function addTask(di){
+  const list = ensureCustom(di);
+  list.push({uid:uidGen(), t:'Neu', x:'Neue Aufgabe', c:'body'});
+  save(); render();
+}
+function deleteTask(di,uid){
+  const list = ensureCustom(di);
+  const idx = list.findIndex(t=>t.uid===uid);
+  if(idx>-1) list.splice(idx,1);
+  delete state.checks[`${currentWeek}_${di}_${uid}`];
+  save(); render(); renderStats();
+}
+function editTaskField(di,uid,field,val){
+  const list = ensureCustom(di);
+  const task = list.find(t=>t.uid===uid);
+  if(task){ task[field]=val; save(); }
+}
+function resetDay(di){
+  if(confirm('Diesen Tag auf den Standard-Plan zurücksetzen?')){
+    const ck = customKey(currentWeek,di);
+    // clear checks tied to custom uids
+    delete state.custom[ck];
+    save(); render(); renderStats();
+  }
+}
+function toggleEdit(di){
+  editingDays[di] = !editingDays[di];
+  render();
+}
+
+// ---------- MEALS ----------
+let editingMeals = {}; // uid -> bool
+function addMeal(){
+  state.meals.push({uid:uidGenSync(), name:'Neues Gericht', time:'Schnell', kcal:0, p:0, c:0, f:0, ing:''});
+  save(); renderMeals();
+}
+function deleteMeal(uid){
+  if(!confirm('Dieses Gericht löschen?')) return;
+  const i = state.meals.findIndex(m=>m.uid===uid);
+  if(i>-1) state.meals.splice(i,1);
+  delete editingMeals[uid];
+  save(); renderMeals();
+}
+function editMealField(uid,field,val){
+  const m = state.meals.find(x=>x.uid===uid);
+  if(!m) return;
+  if(['kcal','p','c','f'].includes(field)) val = parseInt(val,10)||0;
+  m[field]=val; save();
+}
+function toggleMealEdit(uid){
+  editingMeals[uid] = !editingMeals[uid];
+  renderMeals();
+}
+function renderMeals(){
+  const body = document.getElementById('mealsbody');
+  body.innerHTML = state.meals.map(m=>{
+    const ed = !!editingMeals[m.uid];
+    if(ed){
+      return `<div class="meal editing">
+        <div class="meal-head">
+          <span class="meal-name">Bearbeiten</span>
+          <button class="meal-edit-btn active" onclick="toggleMealEdit('${m.uid}')">Fertig</button>
+        </div>
+        <div class="meal-fields">
+          <div><label>Name</label><input value="${escapeAttr(m.name)}" oninput="editMealField('${m.uid}','name',this.value)"></div>
+          <div><label>Tag / Tempo</label><input value="${escapeAttr(m.time)}" oninput="editMealField('${m.uid}','time',this.value)"></div>
+          <div class="macro-row">
+            <div><label>kcal</label><input type="number" value="${m.kcal}" oninput="editMealField('${m.uid}','kcal',this.value)"></div>
+            <div><label>Protein</label><input type="number" value="${m.p}" oninput="editMealField('${m.uid}','p',this.value)"></div>
+            <div><label>Carbs</label><input type="number" value="${m.c}" oninput="editMealField('${m.uid}','c',this.value)"></div>
+            <div><label>Fett</label><input type="number" value="${m.f}" oninput="editMealField('${m.uid}','f',this.value)"></div>
+          </div>
+          <div><label>Zutaten / Zubereitung</label><textarea oninput="editMealField('${m.uid}','ing',this.value)">${escapeHtml(m.ing)}</textarea></div>
+        </div>
+        <button class="meal-del" onclick="deleteMeal('${m.uid}')">Gericht löschen</button>
+      </div>`;
+    }
+    return `<div class="meal">
+      <div class="meal-head">
+        <div><div class="meal-name">${escapeHtml(m.name)}</div><div class="meal-time">${escapeHtml(m.time)}</div></div>
+        <button class="meal-edit-btn" onclick="toggleMealEdit('${m.uid}')">Bearbeiten</button>
+      </div>
+      <div class="meal-macros">
+        <div class="macro"><div class="mv">${m.kcal}</div><div class="ml">kcal</div></div>
+        <div class="macro"><div class="mv">${m.p}g</div><div class="ml">Protein</div></div>
+        <div class="macro"><div class="mv">${m.c}g</div><div class="ml">Carbs</div></div>
+        <div class="macro"><div class="mv">${m.f}g</div><div class="ml">Fett</div></div>
+      </div>
+      <div class="meal-ingredients">${escapeHtml(m.ing)}</div>
+    </div>`;
+  }).join('');
+}
+
+// ---------- HELPERS ----------
+function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escapeAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ---------- RENDER PLAN ----------
+function renderWeekbar(){
+  const wb = document.getElementById('weekbar');
+  wb.innerHTML = '';
+  weeks.forEach((w,i)=>{
+    const done = weekProgress(i)===1;
+    const chip = document.createElement('div');
+    chip.className = 'wchip' + (i===currentWeek?' active':'');
+    chip.innerHTML = `W${i+1}` + (done?'<span class="dot"></span>':'');
+    chip.onclick = ()=>{ currentWeek=i; state.currentWeek=i; save(); render(); };
+    wb.appendChild(chip);
+  });
+  // scroll active into view
+  setTimeout(()=>{ const a=wb.querySelector('.active'); if(a) a.scrollIntoView({inline:'center',block:'nearest'}); },50);
+}
+
+function render(){
+  renderWeekbar();
+  const w = weeks[currentWeek];
+  const body = document.getElementById('planbody');
+  let html = `<div class="week-head">
+    <div class="phase">${w.phase}</div>
+    <h2>${w.title}</h2>
+    ${w.goals.map(g=>`<div class="goal-row"><span class="tag ${g.c}">${g.c==='app'?'App':g.c==='body'?'Body':'Lesen'}</span><span class="txt">${g.x}</span></div>`).join('')}
+  </div>`;
+
+  dayDefs.forEach((dd,di)=>{
+    const tasks = tasksForDayIdx(di);
+    const editing = !!editingDays[di];
+    const isCustom = !!state.custom[customKey(currentWeek,di)];
+    const doneCount = tasks.filter(t=>isDone(currentWeek,di,t.uid)).length;
+    const frac = tasks.length? doneCount/tasks.length : 0;
+    const circ = 2*Math.PI*11;
+    const off = circ*(1-frac);
+    html += `<div class="day${editing?' open':''}" data-day="${di}">
+      <div class="day-head">
+        <div class="left" onclick="(this.closest('.day')).classList.toggle('open')">
+          <div>
+            <div class="day-name">${dd.name}${isCustom?' <span style="color:var(--accent);font-size:11px">•</span>':''}</div>
+            <div class="day-sub">${dd.sub}</div>
+          </div>
+        </div>
+        <div class="day-prog">
+          <button class="day-edit-btn${editing?' active':''}" onclick="toggleEdit(${di})">${editing?'Fertig':'Bearbeiten'}</button>
+          <span>${doneCount}/${tasks.length}</span>
+          <svg class="mini-ring" viewBox="0 0 26 26"><circle class="bg" cx="13" cy="13" r="11"></circle><circle class="fg" cx="13" cy="13" r="11" stroke-dasharray="${circ}" stroke-dashoffset="${off}"></circle></svg>
+          <span class="chevron" onclick="(this.closest('.day')).classList.toggle('open')">▼</span>
+        </div>
+      </div>
+      <div class="tasks">
+        ${tasks.map(t=> editing
+          ? `<div class="task editing">
+              <button class="del-btn" onclick="deleteTask(${di},'${t.uid}')">×</button>
+              <div class="edit-fields">
+                <input class="time-in" value="${escapeAttr(t.t)}" placeholder="Zeit/Label" oninput="editTaskField(${di},'${t.uid}','t',this.value)">
+                <input value="${escapeAttr(t.x)}" placeholder="Aufgabe" oninput="editTaskField(${di},'${t.uid}','x',this.value)">
+              </div>
+            </div>`
+          : `<div class="task ${isDone(currentWeek,di,t.uid)?'done':''}" onclick="toggleTask(${di},'${t.uid}')">
+              <div class="check"></div>
+              <div><div class="time">${escapeHtml(t.t)}</div><div class="body-txt">${escapeHtml(t.x)}</div></div>
+            </div>`
+        ).join('')}
+        ${editing ? `<button class="add-task-btn" onclick="addTask(${di})">+ Aufgabe hinzufügen</button>${isCustom?`<button class="reset-day-btn" onclick="resetDay(${di})">↺ Tag auf Standard zurücksetzen</button>`:''}` : ''}
+      </div>
+    </div>`;
+  });
+
+  // reflection
+  const rkey = `r_${currentWeek}`;
+  html += `<div class="reflect">
+    <h3>Sonntags-Reflexion</h3>
+    <p>Was lief gut? Was war schwer? Was mache ich nächste Woche anders?</p>
+    <textarea id="reflectbox" placeholder="Schreib hier...">${state.reflect[rkey]||''}</textarea>
+  </div>`;
+
+  body.innerHTML = html;
+  const rb = document.getElementById('reflectbox');
+  rb.addEventListener('input', ()=>{ state.reflect[rkey]=rb.value; save(); });
+
+  document.getElementById('note').innerHTML =
+    '⚡ Tippe einen Tag an zum Aufklappen. Häkchen werden im Browser gespeichert. ' +
+    'Realismus-Check: "jacked" wird in 90 Tagen nicht fertig — der Plan baut die <b>Gewohnheiten</b> (Training, Ernährung, Lesen, App-Arbeit), die dich dorthin tragen. Der Sieg nach 90 Tagen ist: die Dinge aus Woche 1 fallen dir jetzt leichter.';
+
+  updateTopStats();
+}
+
+// ---------- PROGRESS CALC ----------
+// task list for ANY week+day (custom if edited, else template)
+function tasksFor(w,di){
+  const ck = `${w}_${di}`;
+  if(state.custom[ck]) return state.custom[ck];
+  return templateTasks(dayDefs[di]);
+}
+function weekProgress(w){
+  let total=0, done=0;
+  dayDefs.forEach((dd,di)=>{
+    tasksFor(w,di).forEach(t=>{ total++; if(isDone(w,di,t.uid)) done++; });
+  });
+  return total? done/total : 0;
+}
+function catProgress(cat){
+  let total=0, done=0;
+  weeks.forEach((w,wi)=>{
+    dayDefs.forEach((dd,di)=>{
+      tasksFor(wi,di).forEach(t=>{ if(t.c===cat){ total++; if(isDone(wi,di,t.uid)) done++; } });
+    });
+  });
+  return total? done/total : 0;
+}
+function overallProgress(){
+  let total=0, done=0;
+  weeks.forEach((w,wi)=>{
+    dayDefs.forEach((dd,di)=>{
+      tasksFor(wi,di).forEach(t=>{ total++; if(isDone(wi,di,t.uid)) done++; });
+    });
+  });
+  return total? done/total : 0;
+}
+function daysFullyDone(){
+  let n=0;
+  weeks.forEach((w,wi)=>{
+    dayDefs.forEach((dd,di)=>{
+      const tasks=tasksFor(wi,di);
+      if(tasks.length && tasks.every(t=>isDone(wi,di,t.uid))) n++;
+    });
+  });
+  return n;
+}
+
+function updateTopStats(){
+  document.getElementById('s-streak').textContent = daysFullyDone();
+  document.getElementById('s-week').textContent = 'W'+(currentWeek+1);
+  document.getElementById('s-overall').textContent = Math.round(overallProgress()*100)+'%';
+}
+
+// ---------- RENDER STATS ----------
+function renderStats(){
+  const ov = overallProgress();
+  const circ = 2*Math.PI*80;
+  document.getElementById('bigfg').setAttribute('stroke-dasharray', circ);
+  document.getElementById('bigfg').setAttribute('stroke-dashoffset', circ*(1-ov));
+  document.getElementById('bigpct').textContent = Math.round(ov*100)+'%';
+
+  const a=catProgress('app'), b=catProgress('body'), m=catProgress('mind');
+  document.getElementById('v-app').textContent=Math.round(a*100)+'%';
+  document.getElementById('b-app').style.width=(a*100)+'%';
+  document.getElementById('v-body').textContent=Math.round(b*100)+'%';
+  document.getElementById('b-body').style.width=(b*100)+'%';
+  document.getElementById('v-mind').textContent=Math.round(m*100)+'%';
+  document.getElementById('b-mind').style.width=(m*100)+'%';
+
+  const grid = document.getElementById('weekgrid');
+  grid.innerHTML='';
+  weeks.forEach((w,i)=>{
+    const p = weekProgress(i);
+    const cell=document.createElement('div');
+    cell.className='wcell';
+    cell.innerHTML=`<div class="lvl" style="opacity:${p*0.9+0.05}"></div><span style="position:relative;z-index:1;color:${p>0.5?'#fff':'var(--muted)'}">${i+1}</span>`;
+    grid.appendChild(cell);
+  });
+}
+
+// ---------- NAV ----------
+document.querySelectorAll('.nav button').forEach(btn=>{
+  btn.onclick=()=>{
+    document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const v=btn.dataset.view;
+    document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+    document.getElementById('view-'+v).classList.add('active');
+    if(v==='stats') renderStats();
+    if(v==='meals') renderMeals();
+    window.scrollTo(0,0);
+  };
+});
+
+document.getElementById('addmealbtn').onclick = addMeal;
+
+document.getElementById('resetbtn').onclick=()=>{
+  if(confirm('Wirklich allen Fortschritt UND alle Anpassungen löschen? (Auch die Gerichte werden auf Standard zurückgesetzt)')){
+    state={checks:{},reflect:{},currentWeek:0,custom:{},meals:defaultMeals.map(m=>({uid:uidGenSync(),...m}))}; currentWeek=0; editingDays={}; editingMeals={}; save(); render(); renderStats(); renderMeals();
+  }
+};
+
+// date line
+const today = new Date().toLocaleDateString('de-DE',{weekday:'long', day:'numeric', month:'long'});
+document.getElementById('dateline').textContent = today + ' · App · Körper · Lesen';
+
+render();
+renderStats();
+renderMeals();
+</script>
+</body>
+</html>
