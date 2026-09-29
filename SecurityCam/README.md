@@ -4,7 +4,8 @@ Android-App, die ein altes Handy in eine Überwachungskamera verwandelt.
 
 - Nimmt mit der Handykamera auf, auch wenn der **Bildschirm aus** ist oder die **App aus der Übersicht geschlossen** wurde (Vordergrund-Dienst mit Benachrichtigung).
 - Speichert in 10-Minuten-Abschnitten (MP4, 720p). Ist das Speicherlimit erreicht, werden die **ältesten Aufnahmen automatisch gelöscht** (Endlosaufnahme).
-- Ton optional (standardmäßig aus), Rück- oder Frontkamera wählbar.
+- Ton optional (standardmäßig aus).
+- Kamera wählbar: Hauptkamera, Weitwinkel (falls das Handy ihn für Apps freigibt), Tele oder Frontkamera.
 - Aufnahmen in der App ansehen (antippen) oder löschen (lange drücken).
 
 ## Installation

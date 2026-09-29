@@ -15,7 +15,6 @@ import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import android.util.Log
-import androidx.camera.core.CameraSelector
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.video.FallbackStrategy
 import androidx.camera.video.FileOutputOptions
@@ -137,14 +136,7 @@ class RecordingService : LifecycleService() {
                     .build()
                 val capture = VideoCapture.withOutput(recorder)
 
-                var selector = if (settings.frontCamera) CameraSelector.DEFAULT_FRONT_CAMERA
-                else CameraSelector.DEFAULT_BACK_CAMERA
-                if (!provider.hasCamera(selector)) {
-                    selector = if (selector == CameraSelector.DEFAULT_BACK_CAMERA)
-                        CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA
-                }
-
-                provider.bindToLifecycle(this, selector, capture)
+                CameraOptions.bind(provider, this, settings, capture)
                 cameraProvider = provider
                 videoCapture = capture
                 startSegment()

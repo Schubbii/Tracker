@@ -23,7 +23,6 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -43,7 +42,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var status: TextView
     private lateinit var toggle: Button
     private lateinit var audio: Switch
-    private lateinit var front: Switch
+    private lateinit var camera: Spinner
     private lateinit var storage: Spinner
     private lateinit var battery: Button
     private lateinit var listHeader: TextView
@@ -77,7 +76,7 @@ class MainActivity : ComponentActivity() {
         status = findViewById(R.id.status)
         toggle = findViewById(R.id.toggle)
         audio = findViewById(R.id.audio)
-        front = findViewById(R.id.front)
+        camera = findViewById(R.id.camera)
         storage = findViewById(R.id.storage)
         battery = findViewById(R.id.battery)
         listHeader = findViewById(R.id.listHeader)
@@ -86,11 +85,7 @@ class MainActivity : ComponentActivity() {
         audio.isChecked = settings.recordAudio
         audio.setOnCheckedChangeListener { _, checked -> settings.recordAudio = checked }
 
-        front.isChecked = settings.frontCamera
-        front.setOnCheckedChangeListener { _, checked ->
-            settings.frontCamera = checked
-            bindPreview()
-        }
+        setupCameraChoice()
 
         val options = Settings.STORAGE_OPTIONS_GB
         storage.adapter = ArrayAdapter(
@@ -131,7 +126,7 @@ class MainActivity : ComponentActivity() {
         status.setTextColor(if (running) Color.parseColor("#FF5252") else Color.WHITE)
         toggle.text = if (running) "Aufnahme stoppen" else "Aufnahme starten"
         audio.isEnabled = !running
-        front.isEnabled = !running
+        camera.isEnabled = !running
         storage.isEnabled = !running
 
         val pm = getSystemService(POWER_SERVICE) as PowerManager
@@ -167,6 +162,31 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun setupCameraChoice() {
+        val future = ProcessCameraProvider.getInstance(this)
+        future.addListener({
+            val options = runCatching { CameraOptions.list(future.get()) }.getOrDefault(emptyList())
+            if (options.isEmpty()) return@addListener
+            camera.adapter = ArrayAdapter(
+                this, android.R.layout.simple_spinner_dropdown_item, options.map { it.label }
+            )
+            val current = options.indexOfFirst {
+                it.cameraId == settings.cameraId && it.zoom == settings.zoomRatio
+            }
+            camera.setSelection(current.coerceAtLeast(0))
+            camera.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(p: AdapterView<*>?, v: View?, pos: Int, id: Long) {
+                    val o = options[pos]
+                    if (o.cameraId == settings.cameraId && o.zoom == settings.zoomRatio) return
+                    settings.cameraId = o.cameraId
+                    settings.zoomRatio = o.zoom
+                    bindPreview()
+                }
+                override fun onNothingSelected(p: AdapterView<*>?) {}
+            }
+        }, ContextCompat.getMainExecutor(this))
+    }
+
     private fun bindPreview() {
         if (RecordingService.isRunning || startPending || !granted(Manifest.permission.CAMERA)) return
         val future = ProcessCameraProvider.getInstance(this)
@@ -177,14 +197,8 @@ class MainActivity : ComponentActivity() {
             val newPreview = Preview.Builder().build().also {
                 it.setSurfaceProvider(previewView.surfaceProvider)
             }
-            var selector = if (settings.frontCamera) CameraSelector.DEFAULT_FRONT_CAMERA
-            else CameraSelector.DEFAULT_BACK_CAMERA
-            if (!provider.hasCamera(selector)) {
-                selector = if (selector == CameraSelector.DEFAULT_BACK_CAMERA)
-                    CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA
-            }
             try {
-                provider.bindToLifecycle(this, selector, newPreview)
+                CameraOptions.bind(provider, this, settings, newPreview)
                 preview = newPreview
             } catch (e: Exception) {
                 preview = null

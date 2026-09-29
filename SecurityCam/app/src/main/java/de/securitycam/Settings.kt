@@ -9,9 +9,15 @@ class Settings(context: Context) {
         get() = prefs.getBoolean("audio", false)
         set(v) = prefs.edit().putBoolean("audio", v).apply()
 
-    var frontCamera: Boolean
-        get() = prefs.getBoolean("front", false)
-        set(v) = prefs.edit().putBoolean("front", v).apply()
+    /** Kamera-ID; null = Hauptkamera. */
+    var cameraId: String?
+        get() = prefs.getString("camera_id", null)
+        set(v) = prefs.edit().putString("camera_id", v).apply()
+
+    /** Zoomfaktor; < 1 = Weitwinkel. */
+    var zoomRatio: Float
+        get() = prefs.getFloat("zoom", 1f)
+        set(v) = prefs.edit().putFloat("zoom", v).apply()
 
     var maxStorageGb: Int
         get() = prefs.getInt("max_gb", 8)
