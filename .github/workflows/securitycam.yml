@@ -1,0 +1,47 @@
+name: SecurityCam APK
+
+on:
+  push:
+    paths:
+      - "SecurityCam/**"
+      - ".github/workflows/securitycam.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: SecurityCam
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: APK bauen
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleDebug
+          cp app/build/outputs/apk/debug/app-debug.apk SecurityCam.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SecurityCam-apk
+          path: SecurityCam/SecurityCam.apk
+
+      - name: Als Release veröffentlichen
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: securitycam-latest
+          name: SecurityCam (neueste Version)
+          body: "Zum Installieren SecurityCam.apk auf dem Android-Handy herunterladen und öffnen."
+          prerelease: true
+          files: SecurityCam/SecurityCam.apk
